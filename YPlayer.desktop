@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=YPlayer
+Comment=Nativer YouTube Musik Player
+Exec=/home/lunapatriciaib/.local/share/yplayer/venv/bin/python3 /home/lunapatriciaib/Dokumente/YPlayer
+Path=/home/lunapatriciaib/Dokumente
+Icon=multimedia-audio-player
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;Qt;
+StartupNotify=true
