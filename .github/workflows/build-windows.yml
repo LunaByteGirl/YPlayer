@@ -6,6 +6,9 @@ on:
     tags: [ 'v*' ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -29,10 +32,14 @@ jobs:
       run: |
         pyinstaller --noconfirm --onedir --windowed --icon yplayer.ico --name YPlayer --collect-all yt_dlp --collect-all ytmusicapi --collect-all pypresence --collect-all certifi YPlayer.py
 
+    - name: Install Inno Setup
+      run: |
+        choco install innosetup --no-progress
+        echo "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
     - name: Compile Inno Setup Installer
-      uses: KevinRDz/inno-setup-action@v1.1
-      with:
-        filepath: installer.iss
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
     - name: Create Portable ZIP Archive
       run: |
@@ -55,3 +62,4 @@ jobs:
           YPlayer-Windows-Portable-x64.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
