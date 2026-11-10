@@ -17,12 +17,13 @@ import sys
 import os
 
 # -----------------------------------------------------------------------------
-# Automatisch in das YPlayer-Venv wechseln
+# Automatisch in das YPlayer-Venv wechseln (nur wenn nicht als AppImage/Frozen gebaut)
 # -----------------------------------------------------------------------------
-VENV_DIR = os.path.expanduser("~/.local/share/yplayer/venv")
-VENV_PYTHON = os.path.join(VENV_DIR, "bin", "python3")
-if sys.prefix != VENV_DIR and os.path.exists(VENV_PYTHON):
-    os.execv(VENV_PYTHON, [VENV_PYTHON] + sys.argv)
+if not getattr(sys, "frozen", False):
+    VENV_DIR = os.path.expanduser("~/.local/share/yplayer/venv")
+    VENV_PYTHON = os.path.join(VENV_DIR, "bin", "python3")
+    if sys.prefix != VENV_DIR and os.path.exists(VENV_PYTHON):
+        os.execv(VENV_PYTHON, [VENV_PYTHON] + sys.argv)
 
 import json
 import re

@@ -23,6 +23,22 @@ Ein minimalistischer, nativer Desktop-Musikplayer für Linux mit Google-/YouTube
 
 ## Installation & Start
 
+### Option 1: Als AppImage (Empfohlen, portabel ohne Installation)
+
+1. Mache das AppImage ausführbar:
+   ```bash
+   chmod +x YPlayer-x86_64.AppImage
+   ```
+
+2. Starte das Programm direkt per Doppelklick oder über das Terminal:
+   ```bash
+   ./YPlayer-x86_64.AppImage
+   ```
+
+*Hinweis: Ein neues AppImage kann jederzeit mit dem mitgelieferten Skript `./build_appimage.sh` gebaut werden.*
+
+### Option 2: Aus dem Quellcode starten
+
 1. Repository klonen:
    ```bash
    git clone https://github.com/LunaByteGirl/YTMusic-Linux.git

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141824"/>
+      <stop offset="100%" stop-color="#090a0f"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="100" fill="url(#bg)" stroke="#23293a" stroke-width="8"/>
+  <!-- Vinyl Rings -->
+  <circle cx="256" cy="256" r="170" fill="none" stroke="#1f2433" stroke-width="12"/>
+  <circle cx="256" cy="256" r="125" fill="none" stroke="#252c3e" stroke-width="6"/>
+  <!-- Center Accent Ring -->
+  <circle cx="256" cy="256" r="85" fill="#131722" stroke="url(#cyanGrad)" stroke-width="8"/>
+  <!-- Play Triangle -->
+  <polygon points="230,200 310,256 230,312" fill="url(#cyanGrad)"/>
+</svg>

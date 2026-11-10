@@ -27,6 +27,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# Build artifacts & binaries
+build/
+dist/
+*.spec
+*.AppImage
+
 # IDE & Editor artifacts
 .vscode/
 .idea/
