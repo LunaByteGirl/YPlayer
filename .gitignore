@@ -12,6 +12,7 @@ audio/
 
 # User session credentials & personal data
 google_session.json
+google_account.json
 discord_session.json
 favorites.json
 history.json

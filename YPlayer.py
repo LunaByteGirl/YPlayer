@@ -79,6 +79,7 @@ CACHE_AUDIO.mkdir(parents=True, exist_ok=True)
 FAVORITES_FILE = DATA_DIR / "favorites.json"
 HISTORY_FILE = DATA_DIR / "history.json"
 SESSION_FILE = DATA_DIR / "google_session.json"
+GOOGLE_ACCOUNT_FILE = DATA_DIR / "google_account.json"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 DISCORD_SESSION_FILE = DATA_DIR / "discord_session.json"
 
@@ -342,6 +343,23 @@ class IconFactory:
             f'<path fill="{color}" d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>', size
         )
 
+    @classmethod
+    def google(cls, size=20):
+        return cls.create(
+            '<path d="M21.35 11.1h-9.17v2.98h5.27c-.23 1.22-.92 2.26-1.95 2.96v2.46h3.15c1.85-1.7 2.91-4.22 2.91-7.22 0-.41-.04-.81-.1-1.18z" fill="#4285F4"/>'
+            '<path d="M12.18 21c2.65 0 4.88-.88 6.51-2.4l-3.15-2.46c-.88.59-2.01.94-3.36.94-2.58 0-4.77-1.74-5.55-4.08H3.37v2.54C5.01 18.78 8.35 21 12.18 21z" fill="#34A853"/>'
+            '<path d="M6.63 13c-.2-.59-.31-1.22-.31-1.87s.11-1.28.31-1.87V6.72H3.37C2.7 8.05 2.32 9.54 2.32 11.13s.38 3.08 1.05 4.41l3.26-2.54z" fill="#FBBC05"/>'
+            '<path d="M12.18 5.18c1.44 0 2.74.5 3.76 1.47l2.82-2.82C17.05 2.24 14.82 1.25 12.18 1.25 8.35 1.25 5.01 3.47 3.37 6.72l3.26 2.54c.78-2.34 2.97-4.08 5.55-4.08z" fill="#EA4335"/>',
+            size
+        )
+
+    @classmethod
+    def user(cls, color="#94a3b8", size=20):
+        return cls.create(
+            f'<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="{color}"/>',
+            size
+        )
+
 
 # -----------------------------------------------------------------------------
 # Klickbare Karte (für Home-Dashboard)
@@ -552,6 +570,43 @@ class GoogleLoginWorker(QThread):
             self.finished.emit(True, "Erfolgreich mit Google angemeldet")
         else:
             self.finished.emit(False, err or "Anmeldung fehlgeschlagen")
+
+
+class GoogleAccountWorker(QThread):
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+
+    def __init__(self, yt_instance):
+        super().__init__()
+        self.yt = yt_instance
+
+    def run(self):
+        if not self.yt:
+            self.error.emit("Keine aktive Google-Sitzung")
+            return
+        try:
+            info = self.yt.get_account_info()
+            if not info:
+                self.error.emit("Keine Kontoinformationen erhalten")
+                return
+
+            photo_url = info.get("accountPhotoUrl")
+            if photo_url:
+                handle_str = info.get("channelHandle") or info.get("accountName") or "google_user"
+                clean_name = re.sub(r'[^a-zA-Z0-9_-]', '_', handle_str)
+                avatar_path = CACHE_THUMBS / f"google_avatar_{clean_name}.png"
+                try:
+                    if not avatar_path.exists() or avatar_path.stat().st_size == 0:
+                        req = urllib.request.Request(photo_url, headers={"User-Agent": "Mozilla/5.0"})
+                        with urllib.request.urlopen(req, timeout=10) as resp:
+                            avatar_path.write_bytes(resp.read())
+                    info["avatar_path"] = str(avatar_path)
+                except Exception:
+                    pass
+
+            self.finished.emit(info)
+        except Exception as e:
+            self.error.emit(str(e))
 
 
 class PlaylistsWorker(QThread):
@@ -1170,8 +1225,15 @@ class YPlayerWindow(QMainWindow):
         self.is_seeking = False
         self.cached_pixmaps = {}
 
-        # Google / YTMusic Instanz
-        self.yt_instance = build_ytmusic_from_saved()
+        # Einstellungen
+        self.settings = load_json(SETTINGS_FILE, {"discord_rpc": True, "google_auto_login": False})
+        self.google_account_info = load_json(GOOGLE_ACCOUNT_FILE, None)
+
+        # Google / YTMusic Instanz (Auto-Login standardmäßig AUS)
+        if self.settings.get("google_auto_login", False):
+            self.yt_instance = build_ytmusic_from_saved()
+        else:
+            self.yt_instance = None
 
         # Audio-Engine
         self.player = QMediaPlayer()
@@ -1191,9 +1253,8 @@ class YPlayerWindow(QMainWindow):
 
         self.search_worker = None
         self.download_worker = None
+        self.google_account_worker = None
 
-        # Einstellungen
-        self.settings = load_json(SETTINGS_FILE, {"discord_rpc": True})
         self.discord_user = load_discord_session()
 
         # Discord Rich Presence Engine
@@ -1247,22 +1308,55 @@ class YPlayerWindow(QMainWindow):
         sb_layout.addLayout(logo_box)
         sb_layout.addSpacing(10)
 
-        # Google Account Status-Karte
-        account_card = QFrame()
-        account_card.setObjectName("account_card")
-        ac_layout = QVBoxLayout(account_card)
-        ac_layout.setContentsMargins(12, 10, 12, 10)
-        ac_layout.setSpacing(6)
+        # Google Account & Status-Karte
+        self.google_card = QFrame()
+        self.google_card.setObjectName("google_card")
+        gc_layout = QVBoxLayout(self.google_card)
+        gc_layout.setContentsMargins(12, 10, 12, 10)
+        gc_layout.setSpacing(6)
 
-        self.lbl_google_status = QLabel("GOOGLE: VERBUNDEN")
+        gc_top = QHBoxLayout()
+        gc_top.setSpacing(8)
+
+        self.google_avatar_lbl = QLabel()
+        self.google_avatar_lbl.setFixedSize(32, 32)
+        self.google_avatar_lbl.setStyleSheet("background-color: #1a1e2b; border: 1px solid #282e40; border-radius: 16px;")
+        self.google_avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        gc_top.addWidget(self.google_avatar_lbl)
+
+        gc_names = QVBoxLayout()
+        gc_names.setSpacing(1)
+
+        self.lbl_google_username = QLabel("GOOGLE KONTO")
+        self.lbl_google_username.setStyleSheet("font-size: 11px; font-weight: 700; color: #f8fafc;")
+
+        self.lbl_google_handle = QLabel("Nicht angemeldet")
+        self.lbl_google_handle.setStyleSheet("font-size: 10px; color: #8e99ac;")
+
+        gc_names.addWidget(self.lbl_google_username)
+        gc_names.addWidget(self.lbl_google_handle)
+        gc_top.addLayout(gc_names, 1)
+
+        self.btn_google_autologin = QPushButton("AUS")
+        self.btn_google_autologin.setObjectName("btn_google_autologin")
+        self.btn_google_autologin.setFixedSize(36, 22)
+        self.btn_google_autologin.setToolTip("Automatische Anmeldung beim Programmstart ein-/ausschalten")
+        self.btn_google_autologin.clicked.connect(self.toggle_google_auto_login)
+        gc_top.addWidget(self.btn_google_autologin)
+
+        gc_layout.addLayout(gc_top)
+
+        self.lbl_google_status = QLabel("GOOGLE: NICHT ANGEMELDET")
         self.lbl_google_status.setObjectName("status_indicator")
-        ac_layout.addWidget(self.lbl_google_status)
+        self.lbl_google_status.setStyleSheet("font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;")
+        gc_layout.addWidget(self.lbl_google_status)
 
-        self.btn_google_auth = QPushButton("KONTO TRENNEN")
+        self.btn_google_auth = QPushButton("MIT GOOGLE ANMELDEN")
         self.btn_google_auth.setObjectName("btn_account_action")
         self.btn_google_auth.clicked.connect(self.handle_google_auth)
-        ac_layout.addWidget(self.btn_google_auth)
-        sb_layout.addWidget(account_card)
+        gc_layout.addWidget(self.btn_google_auth)
+
+        sb_layout.addWidget(self.google_card)
 
         # Discord Account & Rich Presence Status-Karte
         self.discord_card = QFrame()
@@ -2195,10 +2289,23 @@ class YPlayerWindow(QMainWindow):
             border-color: #38bdf8;
             color: #ffffff;
         }
-        #discord_card {
+        #google_card, #discord_card {
             background-color: #131620;
             border: 1px solid #202432;
             border-radius: 6px;
+        }
+        #btn_google_autologin {
+            background-color: #1a1e2b;
+            border: 1px solid #282e40;
+            border-radius: 4px;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        #btn_google_autologin:hover {
+            background-color: #242a3c;
+            border-color: #38bdf8;
+            color: #ffffff;
         }
         #btn_discord_toggle {
             background-color: #1a1e2b;
@@ -2456,30 +2563,119 @@ class YPlayerWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Google Account Handhabung
     # -------------------------------------------------------------------------
+    def get_google_avatar_pixmap(self, size=32):
+        if self.google_account_info:
+            av_path = self.google_account_info.get("avatar_path")
+            if av_path and os.path.exists(av_path):
+                try:
+                    pix = QPixmap(av_path)
+                    if not pix.isNull():
+                        return make_circular_pixmap(pix, size)
+                except Exception:
+                    pass
+        return None
+
     def update_google_status_ui(self):
+        if not hasattr(self, "google_card"):
+            return
+
+        auto_login_on = self.settings.get("google_auto_login", False)
+        if hasattr(self, "btn_google_autologin"):
+            if auto_login_on:
+                self.btn_google_autologin.setText("AN")
+                self.btn_google_autologin.setStyleSheet("background-color: #0284c7; color: #ffffff; border: none; font-size: 10px; font-weight: 700; border-radius: 4px;")
+            else:
+                self.btn_google_autologin.setText("AUS")
+                self.btn_google_autologin.setStyleSheet("background-color: #1a1e2b; color: #64748b; border: 1px solid #282e40; font-size: 10px; font-weight: 700; border-radius: 4px;")
+
         if self.yt_instance:
+            username = "Google-Konto"
+            handle = "Verbunden"
+            if self.google_account_info:
+                username = self.google_account_info.get("accountName") or username
+                handle = self.google_account_info.get("channelHandle") or handle
+
+            pix = self.get_google_avatar_pixmap(32)
+            if not pix:
+                pix = IconFactory.google(size=20).pixmap(20, 20)
+
+            self.google_avatar_lbl.setPixmap(pix)
+            self.lbl_google_username.setText(username)
+            self.lbl_google_handle.setText(handle)
             self.lbl_google_status.setText("● GOOGLE VERBUNDEN")
-            self.lbl_google_status.setStyleSheet("color: #38bdf8; font-weight: bold;")
-            self.btn_google_auth.setText("Abmelden")
+            self.lbl_google_status.setStyleSheet("font-size: 10px; font-weight: 700; color: #38bdf8; letter-spacing: 0.5px;")
+            self.btn_google_auth.setText("ABMELDEN")
             self.btn_nav_playlists.setEnabled(True)
             self.btn_nav_albums.setEnabled(True)
             self.btn_nav_liked.setEnabled(True)
         else:
+            pix = IconFactory.user("#64748b", size=20).pixmap(20, 20)
+            self.google_avatar_lbl.setPixmap(pix)
+            self.lbl_google_username.setText("GOOGLE KONTO")
+            self.lbl_google_handle.setText("Nicht angemeldet")
             self.lbl_google_status.setText("○ NICHT ANGEMELDET")
-            self.lbl_google_status.setStyleSheet("color: #64748b; font-weight: bold;")
-            self.btn_google_auth.setText("Mit Google anmelden")
+            self.lbl_google_status.setStyleSheet("font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;")
+            self.btn_google_auth.setText("MIT GOOGLE ANMELDEN")
+            self.btn_nav_playlists.setEnabled(False)
+            self.btn_nav_albums.setEnabled(False)
+            self.btn_nav_liked.setEnabled(False)
+
+    def toggle_google_auto_login(self):
+        new_val = not self.settings.get("google_auto_login", False)
+        self.settings["google_auto_login"] = new_val
+        save_json(SETTINGS_FILE, self.settings)
+        self.update_google_status_ui()
+        status_txt = "aktiviert" if new_val else "deaktiviert"
+        QMessageBox.information(self, "Automatische Anmeldung", f"Automatische Google-Anmeldung beim Programmstart wurde {status_txt}.")
+
+    def fetch_google_account_info(self):
+        if not self.yt_instance:
+            return
+        self.google_account_worker = GoogleAccountWorker(self.yt_instance)
+        self.google_account_worker.finished.connect(self.on_google_account_info_loaded)
+        self.google_account_worker.error.connect(lambda e: None)
+        self.google_account_worker.start()
+
+    def on_google_account_info_loaded(self, info):
+        self.google_account_info = info
+        save_json(GOOGLE_ACCOUNT_FILE, info)
+        self.update_google_status_ui()
 
     def handle_google_auth(self):
         if self.yt_instance:
-            if SESSION_FILE.exists():
-                SESSION_FILE.unlink(missing_ok=True)
-            self.yt_instance = None
-            self.update_google_status_ui()
-            QMessageBox.information(self, "Abgemeldet", "Google-Konto wurde getrennt.")
-            self.switch_view(PAGE_HOME)
+            reply = QMessageBox.question(
+                self,
+                "Google-Konto abmelden",
+                "Möchtest du dich wirklich von deinem Google-Konto abmelden?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                if SESSION_FILE.exists():
+                    SESSION_FILE.unlink(missing_ok=True)
+                if GOOGLE_ACCOUNT_FILE.exists():
+                    GOOGLE_ACCOUNT_FILE.unlink(missing_ok=True)
+                self.yt_instance = None
+                self.google_account_info = None
+                self.update_google_status_ui()
+                QMessageBox.information(self, "Abgemeldet", "Google-Konto wurde getrennt.")
+                self.switch_view(PAGE_HOME)
             return
 
-        self.lbl_google_status.setText("● VERBINDE...")
+        # Anmelden: Falls bereits Sitzung gespeichert ist, sofort wiederverwenden
+        if SESSION_FILE.exists():
+            self.lbl_google_status.setText("● VERBINDE...")
+            saved_yt = build_ytmusic_from_saved()
+            if saved_yt:
+                self.yt_instance = saved_yt
+                self.update_google_status_ui()
+                self.fetch_google_account_info()
+                self.refresh_home_view()
+                QMessageBox.information(self, "Erfolg", "Erfolgreich mit deinem Google-Konto verbunden!\nDeine Playlists und Alben sind jetzt verfügbar.")
+                return
+
+        # Falls keine Sitzung existiert, aus Firefox-Cookies importieren
+        self.lbl_google_status.setText("● VERBINDE MIT BROWSER...")
         self.google_worker = GoogleLoginWorker()
         self.google_worker.finished.connect(self.on_google_login_finished)
         self.google_worker.start()
@@ -2488,6 +2684,7 @@ class YPlayerWindow(QMainWindow):
         if success:
             self.yt_instance = build_ytmusic_from_saved()
             self.update_google_status_ui()
+            self.fetch_google_account_info()
             QMessageBox.information(self, "Erfolg", "Erfolgreich mit deinem Google-Konto verbunden!\nDeine Playlists und Alben sind jetzt verfügbar.")
             self.refresh_home_view()
         else:
