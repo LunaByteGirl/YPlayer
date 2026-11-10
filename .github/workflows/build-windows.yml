@@ -1,0 +1,57 @@
+name: Build Windows App & Installer
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt pyinstaller
+
+    - name: Compile Windows EXE with PyInstaller
+      run: |
+        pyinstaller --noconfirm --onedir --windowed --icon yplayer.ico --name YPlayer --collect-all yt_dlp --collect-all ytmusicapi --collect-all pypresence --collect-all certifi YPlayer.py
+
+    - name: Compile Inno Setup Installer
+      uses: KevinRDz/inno-setup-action@v1.1
+      with:
+        filepath: installer.iss
+
+    - name: Create Portable ZIP Archive
+      run: |
+        Compress-Archive -Path dist\YPlayer\* -DestinationPath YPlayer-Windows-Portable-x64.zip
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: YPlayer-Windows-Builds
+        path: |
+          YPlayer-Setup-x64.exe
+          YPlayer-Windows-Portable-x64.zip
+
+    - name: Publish to GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          YPlayer-Setup-x64.exe
+          YPlayer-Windows-Portable-x64.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
