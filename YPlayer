@@ -60,14 +60,19 @@ from ytmusicapi.auth.browser import sapisid_from_cookie, get_authorization, YTM_
 from ytmusicapi import YTMusic
 
 # -----------------------------------------------------------------------------
-# Pfade & Verzeichnisse
+# Pfade & Verzeichnisse (Plattformübergreifend Linux & Windows)
 # -----------------------------------------------------------------------------
-DATA_DIR = Path.home() / ".local" / "share" / "yplayer"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-CACHE_DIR = Path.home() / ".cache" / "yplayer"
+if sys.platform == "win32":
+    DATA_DIR = Path(os.environ.get("APPDATA", Path.home())) / "YPlayer"
+    CACHE_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "YPlayer" / "cache"
+else:
+    DATA_DIR = Path.home() / ".local" / "share" / "yplayer"
+    CACHE_DIR = Path.home() / ".cache" / "yplayer"
+
 CACHE_THUMBS = CACHE_DIR / "thumbs"
 CACHE_AUDIO = CACHE_DIR / "audio"
 
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 CACHE_THUMBS.mkdir(parents=True, exist_ok=True)
 CACHE_AUDIO.mkdir(parents=True, exist_ok=True)
 
@@ -666,9 +671,50 @@ class ThumbnailLoader(QRunnable):
 
 
 # -----------------------------------------------------------------------------
-# Discord Socket & Process Helpers
+# Discord Socket & Process Helpers (Plattformübergreifend Linux & Windows)
 # -----------------------------------------------------------------------------
+class DiscordIPCConnection:
+    def __init__(self, path):
+        self.path = path
+        self.is_win = (sys.platform == "win32")
+        if self.is_win:
+            self.handle = open(path, "r+b", buffering=0)
+        else:
+            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.sock.settimeout(3.0)
+            self.sock.connect(path)
+
+    def sendall(self, data):
+        if self.is_win:
+            self.handle.write(data)
+            self.handle.flush()
+        else:
+            self.sock.sendall(data)
+
+    def recv(self, size):
+        if self.is_win:
+            return self.handle.read(size)
+        else:
+            return self.sock.recv(size)
+
+    def close(self):
+        try:
+            if self.is_win:
+                self.handle.close()
+            else:
+                self.sock.close()
+        except Exception:
+            pass
+
+
 def find_discord_socket():
+    if sys.platform == "win32":
+        for i in range(10):
+            pipe_name = rf"\\.\pipe\discord-ipc-{i}"
+            if os.path.exists(pipe_name):
+                return pipe_name
+        return None
+
     runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
     candidates = []
     for i in range(10):
@@ -686,6 +732,22 @@ def find_discord_socket():
 
 
 def launch_discord_app():
+    if sys.platform == "win32":
+        local_app = os.environ.get("LOCALAPPDATA", "")
+        discord_exe = os.path.join(local_app, "Discord", "Update.exe")
+        if os.path.exists(discord_exe):
+            try:
+                subprocess.Popen([discord_exe, "--processStart", "Discord.exe"])
+                return True
+            except Exception:
+                pass
+        try:
+            os.startfile("discord:")
+            return True
+        except Exception:
+            pass
+        return False
+
     try:
         res = subprocess.run(["which", "flatpak"], capture_output=True, text=True)
         if res.returncode == 0:
@@ -741,9 +803,7 @@ class DiscordLoginWorker(QThread):
 
         self.status_updated.emit("Verbinde mit lokalem Discord IPC-Socket...")
         try:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            sock.settimeout(3.5)
-            sock.connect(sock_path)
+            sock = DiscordIPCConnection(sock_path)
 
             payload = json.dumps({"v": 1, "client_id": self.client_id}).encode("utf-8")
             sock.sendall(struct.pack("<II", 0, len(payload)) + payload)
@@ -900,26 +960,14 @@ class DiscordRPCWorker(QThread):
             self._disconnect()
 
     def _find_and_connect(self):
-        runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-        candidates = []
-        for i in range(10):
-            candidates.append(os.path.join(runtime_dir, f"discord-ipc-{i}"))
-            candidates.append(os.path.join(runtime_dir, "app", "com.discordapp.Discord", f"discord-ipc-{i}"))
-            candidates.append(os.path.join(runtime_dir, "app", "dev.vencord.Vesktop", f"discord-ipc-{i}"))
-            candidates.append(os.path.join(runtime_dir, "app", "io.github.spacingbat3.webcord", f"discord-ipc-{i}"))
-            candidates.append(f"/tmp/discord-ipc-{i}")
-
-        for path in candidates:
-            if os.path.exists(path):
-                if self._connect(path):
-                    return True
+        path = find_discord_socket()
+        if path:
+            return self._connect(path)
         return False
 
     def _connect(self, path):
         try:
-            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.sock.settimeout(2.0)
-            self.sock.connect(path)
+            self.sock = DiscordIPCConnection(path)
 
             # Handshake
             payload = json.dumps({"v": 1, "client_id": self.client_id}).encode("utf-8")
@@ -3315,9 +3363,25 @@ class YPlayerWindow(QMainWindow):
 # Main Entry Point
 # -----------------------------------------------------------------------------
 def main():
-    os.environ["QT_QPA_PLATFORM"] = "wayland;xcb"
+    if sys.platform.startswith("linux"):
+        os.environ.setdefault("QT_QPA_PLATFORM", "wayland;xcb")
+    elif sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("YPlayer.Music.Player.1.0")
+        except Exception:
+            pass
+
     app = QApplication(sys.argv)
     app.setApplicationName("YPlayer")
+
+    # Set Window Icon
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    for icon_name in ("yplayer.ico", "yplayer.png"):
+        icon_path = os.path.join(base_dir, icon_name)
+        if os.path.exists(icon_path):
+            app.setWindowIcon(QIcon(icon_path))
+            break
 
     font = QFont("Plus Jakarta Sans", 10)
     app.setFont(font)

@@ -1,15 +1,15 @@
-# YPlayer (YTMusic Linux)
+# YPlayer
 
-Ein minimalistischer, nativer Desktop-Musikplayer für Linux mit Google-/YouTube-Music-Integration und Discord Rich Presence.
+Ein minimalistischer, nativer Desktop-Musikplayer für Linux & Windows mit Google-/YouTube-Music-Integration und Discord Rich Presence.
 
 ## Funktionen
 
-- **Nativ auf dem Desktop:** Schnelle PyQt6-Oberfläche optimiert für Wayland und X11.
+- **Nativ auf dem Desktop:** Schnelle PyQt6-Oberfläche für Linux (Wayland & X11) und Windows.
 - **Home-Bildschirm:** Startseite mit Schnellzugriff auf Favoriten, Playlists und Entdecken-Kategorien.
 - **Lokales Audio-Caching:** Stabiles Abspielen ohne Verbindungsabbrüche mit automatischer Vorpufferung des nächsten Titels.
 - **Google-Konto-Verbindung:** Zugriff auf persönliche Playlists, Alben und Lieblingslieder.
 - **Discord-Konto & Rich Presence:**
-  - Nativer Login über lokalen Discord-IPC-Socket.
+  - Nativer Login über lokalen Discord-IPC-Socket (Linux Unix-Sockets & Windows Named Pipes).
   - Zeigt Avatar, Anzeigename und `@handle` an.
   - Synchronisiert aktuellen Titel, Interpreten, Cover und Laufzeit in Echtzeit zu Discord.
   - Direkter Button „Auf YouTube anhören“ im Discord-Status.
@@ -17,13 +17,12 @@ Ein minimalistischer, nativer Desktop-Musikplayer für Linux mit Google-/YouTube
 
 ## Voraussetzungen
 
-- Linux (z. B. Arch, CachyOS, Fedora, Ubuntu)
-- Python 3.10+
-- `ffmpeg` für Audiowiedergabe
+- **Linux:** Python 3.10+, `ffmpeg`
+- **Windows:** Python 3.10+ (im PATH aktiviert)
 
 ## Installation & Start
 
-### Option 1: Als AppImage (Empfohlen, portabel ohne Installation)
+### Linux: Option 1 – Als AppImage (Empfohlen, portabel ohne Installation)
 
 1. Mache das AppImage ausführbar:
    ```bash
@@ -35,14 +34,28 @@ Ein minimalistischer, nativer Desktop-Musikplayer für Linux mit Google-/YouTube
    ./YPlayer-x86_64.AppImage
    ```
 
-*Hinweis: Ein neues AppImage kann jederzeit mit dem mitgelieferten Skript `./build_appimage.sh` gebaut werden.*
+*Hinweis: Ein neues AppImage kann jederzeit mit dem Skript `./build_appimage.sh` gebaut werden.*
 
-### Option 2: Aus dem Quellcode starten
+### Windows: 1-Klick Startdatei
+
+1. Lade das Projekt herunter oder klone es:
+   ```cmd
+   git clone https://github.com/LunaByteGirl/YPlayer.git
+   cd YPlayer
+   ```
+
+2. **Doppelklicke auf `YPlayer.bat`:**
+   - Richtet beim ersten Start automatisch die isolierte Python-Umgebung ein.
+   - Startet YPlayer ohne störendes schwarzes Konsolenfenster (`pythonw`).
+
+Alternativ kann die Datei `YPlayer.pyw` direkt per Doppelklick gestartet werden, falls Python auf dem Windows-Rechner installiert ist.
+
+### Linux: Option 2 – Aus dem Quellcode starten
 
 1. Repository klonen:
    ```bash
-   git clone https://github.com/LunaByteGirl/YTMusic-Linux.git
-   cd YTMusic-Linux
+   git clone https://github.com/LunaByteGirl/YPlayer.git
+   cd YPlayer
    ```
 
 2. Virtuelle Python-Umgebung erstellen und Abhängigkeiten installieren:
