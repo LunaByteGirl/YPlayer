@@ -32,6 +32,9 @@ build/
 dist/
 *.spec
 *.AppImage
+*.exe
+*.zip
+YPlayer-Windows-Builds/
 
 # IDE & Editor artifacts
 .vscode/

@@ -20,43 +20,44 @@ Ein minimalistischer, nativer Desktop-Musikplayer für Linux & Windows mit Googl
 - **Linux:** Python 3.10+, `ffmpeg`
 - **Windows:** Python 3.10+ (im PATH aktiviert)
 
-## Installation & Start
+## Installation & Downloads
 
-### Linux: Option 1 – Als AppImage (Empfohlen, portabel ohne Installation)
+### Fertige Builds (Releases)
 
-1. Mache das AppImage ausführbar:
-   ```bash
-   chmod +x YPlayer-x86_64.AppImage
-   ```
+Lade die passende Version direkt von den [GitHub Releases](https://github.com/LunaByteGirl/YPlayer/releases/latest) herunter:
 
-2. Starte das Programm direkt per Doppelklick oder über das Terminal:
-   ```bash
-   ./YPlayer-x86_64.AppImage
-   ```
+- **Windows Installer:** [`YPlayer-Setup-x64.exe`](https://github.com/LunaByteGirl/YPlayer/releases/download/v1.0.0/YPlayer-Setup-x64.exe) – Setup-Assistent mit Startmenü- und Desktop-Icon sowie Deinstallationsprogramm.
+- **Windows Portable:** [`YPlayer-Windows-Portable-x64.zip`](https://github.com/LunaByteGirl/YPlayer/releases/download/v1.0.0/YPlayer-Windows-Portable-x64.zip) – Entpacken und sofort `YPlayer.exe` ohne Installation starten.
+- **Linux AppImage:** [`YPlayer-x86_64.AppImage`](https://github.com/LunaByteGirl/YPlayer/releases/download/v1.0.0/YPlayer-x86_64.AppImage) – Standalone-AppImage für alle gängigen Distributionen (Arch, Ubuntu, Debian, Fedora, openSUSE etc.).
 
-*Hinweis: Ein neues AppImage kann jederzeit mit dem Skript `./build_appimage.sh` gebaut werden.*
+---
 
-### Windows: 1-Klick Startdatei
+### Aus dem Quellcode starten
 
-1. Lade das Projekt herunter oder klone es:
+#### Windows: 1-Klick Startdatei
+
+1. Repository klonen oder als ZIP entpacken:
    ```cmd
    git clone https://github.com/LunaByteGirl/YPlayer.git
    cd YPlayer
    ```
 
 2. **Doppelklicke auf `YPlayer.bat`:**
-   - Richtet beim ersten Start automatisch die isolierte Python-Umgebung ein.
-   - Startet YPlayer ohne störendes schwarzes Konsolenfenster (`pythonw`).
+   - Prüft Python, erstellt die virtuelle Umgebung und installiert Abhängigkeiten automatisch.
+   - Startet YPlayer ohne störendes Konsolenfenster (`pythonw`).
 
-Alternativ kann die Datei `YPlayer.pyw` direkt per Doppelklick gestartet werden, falls Python auf dem Windows-Rechner installiert ist.
+Alternativ kann `YPlayer.pyw` direkt per Doppelklick gestartet werden.
 
-### Linux: Option 2 – Aus dem Quellcode starten
+#### Linux: Standalone AppImage oder Quellcode
 
-1. Repository klonen:
+1. **Als AppImage:**
    ```bash
-   git clone https://github.com/LunaByteGirl/YPlayer.git
-   cd YPlayer
+   chmod +x YPlayer-x86_64.AppImage
+   ./YPlayer-x86_64.AppImage
    ```
+   *(Kann jederzeit neu gebaut werden mit `./build_appimage.sh`)*
+
+2. **Aus dem Quellcode:**
 
 2. Virtuelle Python-Umgebung erstellen und Abhängigkeiten installieren:
    ```bash
